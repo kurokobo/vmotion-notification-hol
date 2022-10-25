@@ -7,7 +7,7 @@ import ssl
 from pyVim.connect import Disconnect, SmartConnect
 from pyVim.task import WaitForTask
 from pyVmomi import vim
-from pyVmomi.VmomiSupport import CreateDataType, F_OPTIONAL
+from pyVmomi.VmomiSupport import CreateDataType, F_OPTIONAL, vmodlTypes
 
 # Dirty monkey patch for pyVmomi to force to allow modifying vmOpNotificationTimeout.
 # This should be removed when pyVmomi supports 8.0.
@@ -102,14 +102,17 @@ def handle_vm_mode(args):
 def handle_host_mode(args):
     conn = get_client()
     host = get_host_by_name(conn, args.host)
+    manager = host.configManager.advancedOption
     if args.timeout is None:
-        for option in host.config.option:
-            if option.key == "VmOpNotificationToApp.Timeout":
-                print("VmOpNotificationToApp.Timeout: {}".format(option.value))
-                break
+        try:
+            option = manager.QueryOptions(name="VmOpNotificationToApp.Timeout")
+            if len(option) == 1:
+                print("VmOpNotificationToApp.Timeout: {}".format(option[0].value))
+        except Exception as e:
+            raise Exception("Error: failed to modify host: {}".format(e))
     else:
-        manager = host.configManager.advancedOption
-        option = vim.option.OptionValue(key="VmOpNotificationToApp.Timeout", value=args.timeout)
+        long = vmodlTypes["long"]
+        option = vim.option.OptionValue(key="VmOpNotificationToApp.Timeout", value=long(args.timeout))
         try:
             manager.UpdateOptions(changedValue=[option])
         except Exception as e:
@@ -128,10 +131,10 @@ def main():
     parser_vm.add_argument("-t", "--timeout", action="store", type=int, help="timeout in seconds for notification for vm")
     parser_vm.set_defaults(handler=handle_vm_mode)
 
-    # parser_host = subparsers.add_parser("host", help="display or modify configuration for specific host")
-    # parser_host.add_argument("host", metavar="HOST", action="store", help="name of host that configuration will be displayed or modified")
-    # parser_host.add_argument("-t", "--timeout", action="store", type=int, help="timeout in seconds for notification for host")
-    # parser_host.set_defaults(handler=handle_host_mode)
+    parser_host = subparsers.add_parser("host", help="display or modify configuration for specific host")
+    parser_host.add_argument("host", metavar="HOST", action="store", help="name of host that configuration will be displayed or modified")
+    parser_host.add_argument("-t", "--timeout", action="store", type=int, help="timeout in seconds for notification for host")
+    parser_host.set_defaults(handler=handle_host_mode)
 
     args = parser.parse_args()
     args.handler(args)

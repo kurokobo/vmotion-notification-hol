@@ -10,7 +10,7 @@ Refer documentation ([this](https://core.vmware.com/resource/vsphere-vmotion-not
 - Virtual Hardware Version **20** or later
 - VMware Tools (or Open VM Tools ) **11.0** or later
 
-## Enable vSphere vMotion Notification
+## Enable vSphere vMotion Notification for VM
 
 This repository includes helper script to modify configuration for specific virtual machine.
 
@@ -35,6 +35,18 @@ python helper/vmotion_notification.py vm <VM_NAME> --disable
 
 # Modify timeout for vMotion Notification (vmOpNotificationTimeout = <VALUE>)
 python helper/vmotion_notification.py vm <VM_NAME> --timeout <VALUE>
+```
+
+## Configure vSphere vMotion Notification for ESXi host (Optional)
+
+The helper script can also modify configuration for specific host.
+
+```bash
+# Show current configuration
+python helper/vmotion_notification.py host <HOST_NAME>
+
+# Modify timeout for vMotion Notification (VmOpNotificationToApp.Timeout = <VALUE>)
+python helper/vmotion_notification.py host <HOST_NAME> --timeout <VALUE>
 ```
 
 ## References
