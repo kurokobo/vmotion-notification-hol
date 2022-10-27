@@ -51,10 +51,10 @@ Modifying timeout value for **all hosts** where VMs may be running on by vMotion
 
 ```bash
 # Show current configuration for specific host
-python helper/vmotion_notification.py host <HOST_NAME>
+python helper/vmotion_notifications.py host <HOST_NAME>
 
 # Modify timeout for vMotion Notifications for specific host (VmOpNotificationToApp.Timeout = <VALUE>), e.g. 600
-python helper/vmotion_notification.py host <HOST_NAME> --timeout <VALUE>
+python helper/vmotion_notifications.py host <HOST_NAME> --timeout <VALUE>
 ```
 
 ### Per VM settings
@@ -63,16 +63,16 @@ vSphere vMotion Notifications has to be enabled per VM. If timeout value is conf
 
 ```bash
 # Show current configuration (can NOT gather vmOpNotificationTimeout)
-python helper/vmotion_notification.py vm <VM_NAME>
+python helper/vmotion_notifications.py vm <VM_NAME>
 
 # Enable vMotion Notification (vmOpNotificationToAppEnabled = true)
-python helper/vmotion_notification.py vm <VM_NAME> --enable
+python helper/vmotion_notifications.py vm <VM_NAME> --enable
 
 # Disable vMotion Notification (vmOpNotificationToAppEnabled = false)
-python helper/vmotion_notification.py vm <VM_NAME> --disable
+python helper/vmotion_notifications.py vm <VM_NAME> --disable
 
 # Modify timeout for vMotion Notification (vmOpNotificationTimeout = <VALUE>), e.g. 120
-python helper/vmotion_notification.py vm <VM_NAME> --timeout <VALUE>
+python helper/vmotion_notifications.py vm <VM_NAME> --timeout <VALUE>
 ```
 
 ## Handle vSphere vMotion Notifications in guest OS
