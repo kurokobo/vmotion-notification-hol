@@ -8,11 +8,13 @@ Example implementation for PoC purpose for vSphere vMotion Notifications.
 
 - [Requirements](#requirements)
 - [Enable vSphere vMotion Notifications using helper script](#enable-vsphere-vmotion-notifications-using-helper-script)
-  - [Initial setup for helper script](#initial-setup-for-helper-script)
+  - [Initial setup for helper script module](#initial-setup-for-helper-script-module)
   - [Per host settings](#per-host-settings)
   - [Per VM settings](#per-vm-settings)
 - [How to handle notifications in guest OS](#how-to-handle-notifications-in-guest-os)
 - [Example implementation for vSphere vMotion Notifications for PoC](#example-implementation-for-vsphere-vmotion-notifications-for-poc)
+  - [For Linux](#for-linux)
+  - [For Windows](#for-windows)
 - [References](#references)
 
 ## Requirements
@@ -31,54 +33,65 @@ To enable vSphere vMotion Notifications, **both VM and Host have to be configure
 1. **Per VM**: Enable vSphere vMotion Notifications per VM (`vmOpNotificationToAppEnabled`).
 1. **Per VM**: Configure timeout value per VM (`vmOpNotificationTimeout`).
 
-This repository includes helper script to modify these configurations.
+Currently PowerCLI and PyVmomi does not fully support modifying configuration for vSphere vMotion Notifications, so using MOB (Managed Object Browser) or SDK is preferred way. This repository includes helper script module for PowerShell to modify these configurations.
 
-### Initial setup for helper script
+### Initial setup for helper script module
 
-```bash
-# Prepare Python environment
-pip install -r helper/requirements.txt
+Some handy functions to modify configurations for vSphere vMotion Notifications can be used by importing [script module `VmOpNotification.psm1`](helper/VmOpNotification.psm1) on your PowerShell.
+
+```powershell
+# Download script module
+$url = "https://raw.githubusercontent.com/kurokobo/vmotion-notifications-poc/main/helper/VmOpNotification.psm1"
+$file = "$env:Temp\VmOpNotification.psm1"
+(New-Object System.Net.WebClient).DownloadFile($url, $file)
+
+# Import script module
+Import-Module $file
 
 # Prepare environment variables
-export VMWARE_HOST="vcsa.example.com"
-export VMWARE_USER="vmotion@vsphere.local"
-export VMWARE_VALIDATE_CERTS="false"  # If required
-read -sp "Password: " VMWARE_PASSWORD; export VMWARE_PASSWORD
+$env:VMWARE_HOST = "vcsa.example.com"
+$env:VMWARE_USER = "vmotion@vsphere.local"
+$env:VMWARE_PASSWORD = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($(Read-Host "Password" -AsSecureString)))
+
+# (Optional) Ignore SSL certificate verification if required for your vCenter Server
+[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 ```
 
 ### Per host settings
 
 Modifying timeout value for **all hosts** where VMs may be running on by vMotion appears to be required, since the default timeout value is displayed as `1800` but **the actual default value is `0`**, and the smaller timeout value of the host and VM will be used to make vMotion delayed.
 
-```bash
+```powershell
 # Show current configuration for specific host
-python helper/vmotion_notifications.py host <HOST_NAME>
+Get-VMHostVmOpNotification -Name <HOST_NAME>
 
 # Modify timeout for vMotion Notifications for specific host (VmOpNotificationToApp.Timeout = <VALUE>), e.g. 600
-python helper/vmotion_notifications.py host <HOST_NAME> --timeout <VALUE>
+Set-VMHostVmOpNotification -Name <HOST_NAME> -Timeout <VALUE>
 ```
 
 ### Per VM settings
 
 vSphere vMotion Notifications has to be enabled per VM. If timeout value is configured for VM, the smaller timeout value of the host and VM will be used to make vMotion delayed.
 
-```bash
-# Show current configuration (can NOT gather vmOpNotificationTimeout)
-python helper/vmotion_notifications.py vm <VM_NAME>
+```powershell
+# Show current configuration
+Get-VMVmOpNotification -Name <VM_NAME>
 
 # Enable vMotion Notification (vmOpNotificationToAppEnabled = true)
-python helper/vmotion_notifications.py vm <VM_NAME> --enable
+Set-VMVmOpNotification -Name <VM_NAME> -Enabled "true"
 
 # Disable vMotion Notification (vmOpNotificationToAppEnabled = false)
-python helper/vmotion_notifications.py vm <VM_NAME> --disable
+Set-VMVmOpNotification -Name <VM_NAME> -Enabled "false"
 
 # Modify timeout for vMotion Notification (vmOpNotificationTimeout = <VALUE>), e.g. 120
-python helper/vmotion_notifications.py vm <VM_NAME> --timeout <VALUE>
+Set-VMVmOpNotification -Name <VM_NAME> -Timeout <VALUE>
 ```
 
 ## How to handle notifications in guest OS
 
 Applications can use `vmtoolsd` (command line utility that installed with VMware Tools or Open VM Tools) to handle notifications.
+
+**_NOTE FOR WINDOWS_:** `vmtoolsd` is available as `C:\Program Files\VMware\VMware Tools\vmtoolsd.exe` and usable in the similar manner. However, due to the vagaries of escaping syntax on `powershell.exe` and `cmd.exe`, using `--cmdfile` instead of `--cmd` is recommended; just store argument for `--cmd` as a text file and pass its path through `--cmdfile`.
 
 Initially applications have to get `uniqueToken` by registering applications.
 
@@ -135,14 +148,16 @@ After the start event, if the timeout elapses, the migration is forced to start 
 
 ## Example implementation for vSphere vMotion Notifications for PoC
 
-This repository includes example script [`examples/handle_notifications.py`](examples/handle_notifications.py) for PoC purpose to work with vSphere vMotion Notifications. The script will do;
+This repository includes example scripts under [`examples`](examples) for PoC purpose to work with vSphere vMotion Notifications. The script will do;
 
-- Register your application with specified name (`--name` or `-n` option)
-- Monitor notifications at specified interval seconds (`--interval` or `-i` option, defaults to 30 seconds)
-- On `start` event, invoke specified command to quiesce application (`--quiesce` or `-q` option)
-- On `end` event, invoke specified command to unquiesce application (`--unquiesce` or `-u` option)
+- Register your application with specified name
+- Monitor notifications at specified interval seconds
+- On `start` event, invoke specified command to quiesce application
+- On `end` event, invoke specified command to unquiesce application
 - Unregister your application on exit
-- Save detailed debug log as `handle_notifications.log` in the same directory as `handle_notifications.py`
+- Save detailed debug log as `handle_notifications.log` in the same directory as the script is
+
+### For Linux
 
 To run this script, use following syntax.
 
@@ -251,6 +266,10 @@ $ cat handle_notifications.log
 2022-10-29 07:10:56,164 [DEBUG] vmtoolsd: stdout: {"version":"1.0.0", "result": true }
 2022-10-29 07:10:56,164 [INFO] monitor: application has been unregistered
 ```
+
+### For Windows
+
+Not implemented.
 
 ## References
 
