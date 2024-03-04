@@ -8,8 +8,8 @@ function Invoke-vSphereSOAPRequest {
     )
 
     $Headers = @{
-        "Soapaction"   = "urn:vim25/8.0.0.1"
-        "Content-Type" = 'text/xml; charset="utf-8"'
+        "soapaction"   = "urn:vim25/8.0.0.1"
+        "content-type" = 'text/xml; charset="utf-8"'
     }
     $Uri = "https://{0}/sdk" -f $env:VMWARE_HOST
     $XmlBodyTemplate = '<?xml version="1.0" encoding="UTF-8"?><Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/"><Body>{0}</Body></Envelope>'
