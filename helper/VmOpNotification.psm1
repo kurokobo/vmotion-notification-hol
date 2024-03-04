@@ -1,4 +1,5 @@
 function Invoke-vSphereSOAPRequest {
+    [cmdletbinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string] $Request,
@@ -27,13 +28,18 @@ function Invoke-vSphereSOAPRequest {
 
     try {
         $ProgressPreference = "SilentlyContinue"
+        $ConstructedBody = $XmlBodyTemplate -f ($XmlBodies[$Request] -f $Parameters)
+        Format-XML -Content [xml]($ConstructedBody) | Write-Verbose
+
         if ($Initiate) {
-            $result = Invoke-WebRequest -SessionVariable "global:DefaultVISoapSession" -Uri $Uri -Method "POST" -Headers $Headers -Body ($XmlBodyTemplate -f ($XmlBodies[$Request] -f $Parameters))
+            $result = Invoke-WebRequest -SessionVariable "global:DefaultVISoapSession" -Uri $Uri -Method "POST" -Headers $Headers -Body $ConstructedBody
         }
         else {
-            $result = Invoke-WebRequest -WebSession $global:DefaultVISoapSession -Uri $Uri -Method "POST" -Headers $Headers -Body ($XmlBodyTemplate -f ($XmlBodies[$Request] -f $Parameters))
+            $result = Invoke-WebRequest -WebSession $global:DefaultVISoapSession -Uri $Uri -Method "POST" -Headers $Headers -Body $ConstructedBody
         }
         $ProgressPreference = "Continue"
+        Format-XML -Content [xml]($result.Content) | Write-Verbose
+
         return ([xml]($result.Content)).Envelope.Body
     }
     catch {
@@ -48,6 +54,9 @@ function Invoke-vSphereSOAPRequest {
 }
 
 function New-vSphereSOAPSession {
+    [cmdletbinding()]
+    param()
+
     if (-not $global:DefaultVISoapSession) {
         try {
             $serviceContent = Invoke-vSphereSOAPRequest -Request "RetrieveServiceContent" -Initiate
@@ -65,6 +74,7 @@ function Remove-vSphereSOAPSession {
 }
 
 function Get-vSphereSOAPMoProperties {
+    [cmdletbinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string] $PropertyType,
@@ -83,6 +93,7 @@ function Get-vSphereSOAPMoProperties {
 }
 
 function Get-vSphereSOAPMoRef {
+    [cmdletbinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string] $Type,
@@ -103,6 +114,7 @@ function Get-vSphereSOAPMoRef {
 }
 
 function Get-VMHostVmOpNotification {
+    [cmdletbinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string] $Name
@@ -121,6 +133,7 @@ function Get-VMHostVmOpNotification {
 }
 
 function Set-VMHostVmOpNotification {
+    [cmdletbinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string] $Name,
@@ -137,6 +150,7 @@ function Set-VMHostVmOpNotification {
 }
 
 function Get-VMVmOpNotification {
+    [cmdletbinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string] $Name
@@ -154,6 +168,7 @@ function Get-VMVmOpNotification {
 }
 
 function Set-VMVmOpNotification {
+    [cmdletbinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string] $Name,
@@ -181,6 +196,18 @@ function Set-VMVmOpNotification {
     }
 
     return Get-VMVmOpNotification -Name $Name
+}
+
+# https://devblogs.microsoft.com/powershell/format-xml/
+function Format-XML ([xml]$xml, $indent = 2) {
+    $StringWriter = New-Object System.IO.StringWriter
+    $XmlWriter = New-Object System.XMl.XmlTextWriter $StringWriter
+    $xmlWriter.Formatting = "indented"
+    $xmlWriter.Indentation = $Indent
+    $xml.WriteContentTo($XmlWriter)
+    $XmlWriter.Flush()
+    $StringWriter.Flush()
+    Write-Output $StringWriter.ToString()
 }
 
 Add-Type @"
