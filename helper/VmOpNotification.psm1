@@ -21,9 +21,9 @@ function Invoke-vSphereSOAPRequest {
         "UpdateOptions"                   = '<UpdateOptions xmlns="urn:vim25"><_this type="OptionManager">{0}</_this><changedValue xmlns:XMLSchema-instance="http://www.w3.org/2001/XMLSchema-instance" XMLSchema-instance:type="OptionValue"><key>{1}</key><value XMLSchema-instance:type="xsd:long">{2}</value></changedValue></UpdateOptions>'
         "ReconfigVM_Task"                 = '<ReconfigVM_Task xmlns="urn:vim25"><_this type="VirtualMachine">{0}</_this><spec>{1}</spec></ReconfigVM_Task>'
         "CreateContainerView"             = '<CreateContainerView xmlns="urn:vim25"><_this type="ViewManager">ViewManager</_this><container type="Folder">{0}</container><type>{1}</type><recursive>true</recursive></CreateContainerView>'
-        "RetrieveContainerViewProperties" = '<RetrieveProperties xmlns="urn:vim25"><_this type="PropertyCollector">propertyCollector</_this><specSet><propSet><type>ManagedEntity</type><pathSet>name</pathSet></propSet><objectSet><obj type="ContainerView">{0}</obj><skip>true</skip><selectSet xmlns:XMLSchema-instance="http://www.w3.org/2001/XMLSchema-instance" XMLSchema-instance:type="TraversalSpec"><type>ContainerView</type><path>view</path></selectSet></objectSet></specSet></RetrieveProperties>'
+        "RetrieveContainerViewProperties" = '<RetrievePropertiesEx xmlns="urn:vim25"><_this type="PropertyCollector">propertyCollector</_this><specSet><propSet><type>ManagedEntity</type><pathSet>name</pathSet></propSet><objectSet><obj type="ContainerView">{0}</obj><skip>true</skip><selectSet xmlns:XMLSchema-instance="http://www.w3.org/2001/XMLSchema-instance" XMLSchema-instance:type="TraversalSpec"><type>ContainerView</type><path>view</path></selectSet></objectSet></specSet><options></options></RetrievePropertiesEx>'
         "DestroyContainerView"            = '<DestroyView xmlns="urn:vim25"><_this type="ContainerView">{0}</_this></DestroyView>'
-        "RetrieveObjectProperties"        = '<RetrieveProperties xmlns="urn:vim25"><_this type="PropertyCollector">propertyCollector</_this><specSet><propSet><type>{0}</type><pathSet>{1}</pathSet></propSet><objectSet><obj type="{2}">{3}</obj><skip>false</skip></objectSet></specSet></RetrieveProperties>'
+        "RetrieveObjectProperties"        = '<RetrievePropertiesEx xmlns="urn:vim25"><_this type="PropertyCollector">propertyCollector</_this><specSet><propSet><type>{0}</type><pathSet>{1}</pathSet></propSet><objectSet><obj type="{2}">{3}</obj><skip>false</skip></objectSet></specSet><options></options></RetrievePropertiesEx>'
     }
 
     try {
@@ -89,7 +89,7 @@ function Get-vSphereSOAPMoProperties {
 
     $properties = Invoke-vSphereSOAPRequest -Request "RetrieveObjectProperties" -Parameters $PropertyType, $PropertyPath, $ObjectType, $ObjectReference
 
-    return $properties.RetrievePropertiesResponse.returnval
+    return $properties.RetrievePropertiesExResponse.returnval.objects
 }
 
 function Get-vSphereSOAPMoRef {
@@ -106,7 +106,7 @@ function Get-vSphereSOAPMoRef {
     $properties = Invoke-vSphereSOAPRequest -Request "RetrieveContainerViewProperties" -Parameters $containerView.CreateContainerViewResponse.returnval.InnerText
     $null = Invoke-vSphereSOAPRequest -Request "DestroyContainerView" -Parameters $containerView.CreateContainerViewResponse.returnval.InnerText
 
-    foreach ($property in $properties.RetrievePropertiesResponse.returnval) {
+    foreach ($property in $properties.RetrievePropertiesExResponse.returnval.objects) {
         if ($property.propSet.val.InnerText -eq $Name) {
             return $property.obj.InnerText
         }
