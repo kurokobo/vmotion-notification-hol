@@ -69,6 +69,9 @@ Get-VMHostVmOpNotification -Name <HOST_NAME>
 Set-VMHostVmOpNotification -Name <HOST_NAME> -Timeout <VALUE>
 ```
 
+> [!TIP]
+> Appending `-Verbose` to above commandlets makes XML for requests and responses to be dumped for debugging purposes. Use with caution since your password (the value for `$env:VMWARE_PASSWORD`) will also be dumped as plain text in XML for authenticaton request.
+
 ### Per VM settings
 
 vSphere vMotion Notifications has to be enabled per VM. If timeout value is configured for VM, the smaller timeout value of the host and VM will be used to make vMotion delayed.
@@ -86,6 +89,9 @@ Set-VMVmOpNotification -Name <VM_NAME> -Enabled "false"
 # Modify timeout for vMotion Notification (vmOpNotificationTimeout = <VALUE>), e.g. 120
 Set-VMVmOpNotification -Name <VM_NAME> -Timeout <VALUE>
 ```
+
+> [!TIP]
+> Appending `-Verbose` to above commandlets makes XML for requests and responses to be dumped for debugging purposes. Use with caution since your password (the value for `$env:VMWARE_PASSWORD`) will also be dumped as plain text in XML for authenticaton request.
 
 ## How to handle notifications in guest OS
 
