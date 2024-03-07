@@ -11,7 +11,7 @@ function Invoke-vSphereSOAPRequest {
         "soapaction"   = "urn:vim25/8.0.0.1"
         "content-type" = 'text/xml; charset="utf-8"'
     }
-    $Uri = "https://{0}/sdk" -f $env:VMWARE_HOST
+    $Uri = "https://{0}/sdk/vimService" -f $env:VMWARE_HOST
     $XmlBodyTemplate = '<?xml version="1.0" encoding="UTF-8"?><Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/"><Body>{0}</Body></Envelope>'
     $XmlBodies = @{
         "RetrieveServiceContent"          = '<RetrieveServiceContent xmlns="urn:vim25"><_this type="ServiceInstance">ServiceInstance</_this></RetrieveServiceContent>'
